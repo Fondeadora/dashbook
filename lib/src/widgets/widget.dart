@@ -45,12 +45,18 @@ class Dashbook extends StatefulWidget {
   final String title;
   final bool usePreviewSafeArea;
   final GlobalKey<NavigatorState>? navigatorKey;
+  final Iterable<LocalizationsDelegate<dynamic>>? localizationsDelegates;
+  final Iterable<Locale> supportedLocales;
+  final Locale? locale;
 
   Dashbook({
     this.theme,
     this.title = '',
     this.usePreviewSafeArea = false,
     this.navigatorKey,
+    this.localizationsDelegates = const [],
+    this.supportedLocales = const <Locale>[Locale('en', 'US')],
+    this.locale = null,
   })  : dualTheme = null,
         multiTheme = null;
 
@@ -61,6 +67,9 @@ class Dashbook extends StatefulWidget {
     this.title = '',
     this.usePreviewSafeArea = false,
     this.navigatorKey,
+    this.localizationsDelegates = const [],
+    this.supportedLocales = const <Locale>[Locale('en', 'US')],
+    this.locale = null,
   })  : dualTheme = _DashbookDualTheme(
             dark: dark, light: light, initWithLight: initWithLight),
         theme = null,
@@ -72,6 +81,9 @@ class Dashbook extends StatefulWidget {
     this.title = '',
     this.usePreviewSafeArea = false,
     this.navigatorKey,
+    this.localizationsDelegates = const [],
+    this.supportedLocales = const <Locale>[Locale('en', 'US')],
+    this.locale = null,
   })  : multiTheme =
             _DashbookMultiTheme(themes: themes, initialTheme: initialTheme),
         theme = null,
@@ -168,6 +180,9 @@ class _DashbookState extends State<Dashbook> {
       navigatorKey: widget.navigatorKey,
       title: widget.title,
       theme: _currentTheme,
+      localizationsDelegates: widget.localizationsDelegates,
+      supportedLocales: widget.supportedLocales,
+      locale: widget.locale,
       onGenerateRoute: (settings) {
         return MaterialPageRoute(builder: (context) {
           final chapterWidget = _currentChapter?.widget();
