@@ -20,6 +20,9 @@ import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
 typedef OnChapterChange = void Function(Chapter);
 
+const defaultLocale = Locale('en', 'US');
+const defaultSupportedLocales = <Locale>[defaultLocale];
+
 class _DashbookDualTheme {
   final ThemeData light;
   final ThemeData dark;
@@ -50,6 +53,9 @@ class Dashbook extends StatefulWidget {
   final String title;
   final bool usePreviewSafeArea;
   final GlobalKey<NavigatorState>? navigatorKey;
+  final Iterable<LocalizationsDelegate<dynamic>>? localizationsDelegates;
+  final Iterable<Locale> supportedLocales;
+  final Locale? locale;
 
   /// Called whenever a new chapter is selected.
   final OnChapterChange? onChapterChange;
@@ -61,6 +67,9 @@ class Dashbook extends StatefulWidget {
     this.usePreviewSafeArea = false,
     this.navigatorKey,
     this.onChapterChange,
+    this.localizationsDelegates = const [],
+    this.supportedLocales = defaultSupportedLocales,
+    this.locale = defaultLocale,
   })  : _dualTheme = null,
         _multiTheme = null,
         super(key: key);
@@ -74,6 +83,9 @@ class Dashbook extends StatefulWidget {
     this.usePreviewSafeArea = false,
     this.navigatorKey,
     this.onChapterChange,
+    this.localizationsDelegates = const [],
+    this.supportedLocales = defaultSupportedLocales,
+    this.locale = defaultLocale,
   })  : _dualTheme = _DashbookDualTheme(
           dark: dark,
           light: light,
@@ -91,6 +103,9 @@ class Dashbook extends StatefulWidget {
     this.usePreviewSafeArea = false,
     this.navigatorKey,
     this.onChapterChange,
+    this.localizationsDelegates = const [],
+    this.supportedLocales = defaultSupportedLocales,
+    this.locale = defaultLocale,
   })  : _multiTheme =
             _DashbookMultiTheme(themes: themes, initialTheme: initialTheme),
         theme = null,
@@ -199,6 +214,9 @@ class _DashbookState extends State<Dashbook> {
       navigatorKey: widget.navigatorKey,
       title: widget.title,
       theme: _currentTheme,
+      localizationsDelegates: widget.localizationsDelegates,
+      supportedLocales: widget.supportedLocales,
+      locale: widget.locale,
       onGenerateRoute: (settings) {
         return MaterialPageRoute<void>(
           builder: (context) {
