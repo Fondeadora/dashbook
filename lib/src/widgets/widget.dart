@@ -48,6 +48,7 @@ class Dashbook extends StatefulWidget {
   final Iterable<LocalizationsDelegate<dynamic>>? localizationsDelegates;
   final Iterable<Locale> supportedLocales;
   final Locale? locale;
+  final BuildContext? context;
 
   Dashbook({
     this.theme,
@@ -57,6 +58,7 @@ class Dashbook extends StatefulWidget {
     this.localizationsDelegates = const [],
     this.supportedLocales = const <Locale>[Locale('en', 'US')],
     this.locale = null,
+    this.context = null,
   })  : dualTheme = null,
         multiTheme = null;
 
@@ -171,6 +173,9 @@ class _DashbookState extends State<Dashbook> {
 
   @override
   Widget build(BuildContext context) {
+    setState(() {
+      context = context;
+    });
     if (_loading) {
       return Container();
     }
