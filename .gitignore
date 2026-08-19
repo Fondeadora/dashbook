@@ -80,3 +80,7 @@ coverage
 .fvm
 
 pubspec.lock
+
+# Local scratch, no forma parte del paquete.
+.gitlocks/
+.wip/
