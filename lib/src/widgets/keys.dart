@@ -10,3 +10,4 @@ const kDevicePreviewIcon = Key('device_preview_icon');
 const kRotateIcon = Key('rotate_icon');
 const kHideFrameIcon = Key('hide_frame_icon');
 const kStoryPinIcon = Key('story_pin_icon');
+const kCaptureIcon = Key('capture_icon');

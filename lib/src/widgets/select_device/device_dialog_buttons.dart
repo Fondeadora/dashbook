@@ -13,23 +13,19 @@ class DeviceDialogButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
+    // Wrap, not Row: three fixed buttons overflow a narrow dialog.
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 12,
+      runSpacing: 8,
       children: [
         ElevatedButton(
           onPressed: onSelect,
           child: const Text('Select'),
         ),
-        const SizedBox(
-          width: 15,
-        ),
         ElevatedButton(
           onPressed: onCancel,
           child: const Text('Cancel'),
-        ),
-        const SizedBox(
-          width: 15,
         ),
         ElevatedButton(
           onPressed: onClear,

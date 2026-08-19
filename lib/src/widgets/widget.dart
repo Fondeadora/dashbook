@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui' as ui;
+
 import 'package:dashbook/dashbook.dart';
 import 'package:dashbook/src/device_size_extension.dart';
 import 'package:dashbook/src/platform_utils/platform_utils.dart';
@@ -15,6 +18,7 @@ import 'package:dashbook/src/widgets/stories_list.dart';
 import 'package:device_frame/device_frame.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
@@ -60,9 +64,14 @@ class Dashbook extends StatefulWidget {
   /// Called whenever a new chapter is selected.
   final OnChapterChange? onChapterChange;
 
+  /// Receives a PNG of the preview only, with none of the tools in it. The
+  /// host app decides where it lands, so this package stays plugin free.
+  final Future<void> Function(Uint8List png)? onCapture;
+
   Dashbook({
     Key? key,
     this.theme,
+    this.onCapture,
     this.title = '',
     this.usePreviewSafeArea = false,
     this.navigatorKey,
@@ -79,6 +88,7 @@ class Dashbook extends StatefulWidget {
     required ThemeData light,
     required ThemeData dark,
     bool initWithLight = true,
+    this.onCapture,
     this.title = '',
     this.usePreviewSafeArea = false,
     this.navigatorKey,
@@ -99,6 +109,7 @@ class Dashbook extends StatefulWidget {
     Key? key,
     required Map<String, ThemeData> themes,
     String? initialTheme,
+    this.onCapture,
     this.title = '',
     this.usePreviewSafeArea = false,
     this.navigatorKey,
@@ -132,6 +143,37 @@ enum CurrentView {
 }
 
 class _DashbookState extends State<Dashbook> {
+  // Controls fade out on idle: a screenshot cannot be caught before it is
+  // taken, so the next best thing is that they are already gone by then.
+  static const _idle = Duration(seconds: 3);
+  Timer? _idleTimer;
+  bool _clean = false;
+
+  void _wake() {
+    if (_clean) setState(() => _clean = false);
+    _idleTimer?.cancel();
+    _idleTimer = Timer(_idle, () {
+      if (mounted && _currentView == null) setState(() => _clean = true);
+    });
+  }
+
+  // Solo el preview vive dentro de esta frontera, asi que la captura sale sin
+  // iconos, sin cajon y sin barra.
+  final GlobalKey _previewKey = GlobalKey();
+
+  Future<void> _capture() async {
+    final boundary = _previewKey.currentContext?.findRenderObject();
+    if (boundary is! RenderRepaintBoundary) return;
+
+    final image = await boundary.toImage(
+      pixelRatio: MediaQuery.of(context).devicePixelRatio,
+    );
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (data == null) return;
+
+    await widget.onCapture!(data.buffer.asUint8List());
+  }
+
   Chapter? _currentChapter;
   CurrentView? _currentView;
   ThemeData? _currentTheme;
@@ -146,6 +188,8 @@ class _DashbookState extends State<Dashbook> {
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _wake());
 
     if (widget.theme != null) {
       _currentTheme = widget.theme;
@@ -204,11 +248,26 @@ class _DashbookState extends State<Dashbook> {
   }
 
   @override
+  void dispose() {
+    _idleTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (_loading) {
       return Container();
     }
 
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _wake(),
+      onPointerSignal: (_) => _wake(),
+      child: _buildApp(context),
+    );
+  }
+
+  Widget _buildApp(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       navigatorKey: widget.navigatorKey,
@@ -272,19 +331,22 @@ class _DashbookState extends State<Dashbook> {
                           if (_currentChapter != null &&
                               (context.isNotPhoneSize ||
                                   _currentView != CurrentView.stories))
-                            PreviewContainer(
-                              key: Key(_currentChapter!.id),
-                              usePreviewSafeArea: widget.usePreviewSafeArea,
-                              isPropertiesOpen:
-                                  _currentView == CurrentView.properties ||
-                                      _currentView == CurrentView.actions,
-                              deviceInfo: deviceInfo,
-                              deviceOrientation: deviceOrientation,
-                              showDeviceFrame: showDeviceFrame,
-                              info: _currentChapter?.pinInfo == true
-                                  ? _currentChapter?.info
-                                  : null,
-                              child: chapterWidget!,
+                            RepaintBoundary(
+                              key: _previewKey,
+                              child: PreviewContainer(
+                                key: Key(_currentChapter!.id),
+                                usePreviewSafeArea: widget.usePreviewSafeArea,
+                                isPropertiesOpen:
+                                    _currentView == CurrentView.properties ||
+                                        _currentView == CurrentView.actions,
+                                deviceInfo: deviceInfo,
+                                deviceOrientation: deviceOrientation,
+                                showDeviceFrame: showDeviceFrame,
+                                info: _currentChapter?.pinInfo == true
+                                    ? _currentChapter?.info
+                                    : null,
+                                child: chapterWidget!,
+                              ),
                             ),
                           Positioned(
                             right: 10,
@@ -316,7 +378,15 @@ class _DashbookState extends State<Dashbook> {
                                       },
                                     ),
                                   ),
-                                if (_currentChapter?.info != null &&
+                                if (widget.onCapture != null)
+                                  DashbookIcon(
+                                    key: kCaptureIcon,
+                                    tooltip: 'Capture',
+                                    icon: Icons.photo_camera,
+                                    onClick: _capture,
+                                  ),
+                                if (!_clean &&
+                                    _currentChapter?.info != null &&
                                     _currentChapter?.pinInfo == false)
                                   DashbookIcon(
                                     tooltip: 'Instructions',
@@ -333,21 +403,21 @@ class _DashbookState extends State<Dashbook> {
                                       );
                                     },
                                   ),
-                                if (_currentChapter?.codeLink != null)
+                                if (!_clean && _currentChapter?.codeLink != null)
                                   DashbookIcon(
                                     tooltip: 'See code',
                                     icon: Icons.code,
                                     onClick: () =>
                                         _launchURL(_currentChapter!.codeLink!),
                                   ),
-                                if (widget._dualTheme != null)
+                                if (!_clean && widget._dualTheme != null)
                                   _DashbookDualThemeIcon(
                                     dualTheme: widget._dualTheme!,
                                     currentTheme: _currentTheme!,
                                     onChangeTheme: (theme) =>
                                         setState(() => _currentTheme = theme),
                                   ),
-                                if (widget._multiTheme != null)
+                                if (!_clean && widget._multiTheme != null)
                                   DashbookIcon(
                                     tooltip: 'Choose theme',
                                     icon: Icons.palette,
@@ -381,7 +451,7 @@ class _DashbookState extends State<Dashbook> {
                                       );
                                     },
                                   ),
-                                if (kIsWeb && _currentChapter != null)
+                                if (!_clean && kIsWeb && _currentChapter != null)
                                   DashbookIcon(
                                     tooltip: 'Share this example',
                                     icon: Icons.share,
@@ -402,31 +472,32 @@ class _DashbookState extends State<Dashbook> {
                                       );
                                     },
                                   ),
-                                DashbookIcon(
-                                  key: kDevicePreviewIcon,
-                                  tooltip: 'Device preview',
-                                  icon: Icons.phone_android_outlined,
-                                  onClick: () async {
-                                    final selectedDevice =
-                                        await showDialog<DeviceInfo>(
-                                      context: context,
-                                      builder: (_) => DeviceDialog(
-                                        currentSelection: deviceInfo,
-                                      ),
-                                    );
+                                if (!_clean)
+                                  DashbookIcon(
+                                    key: kDevicePreviewIcon,
+                                    tooltip: 'Device preview',
+                                    icon: Icons.phone_android_outlined,
+                                    onClick: () async {
+                                      final selectedDevice =
+                                          await showDialog<DeviceInfo>(
+                                        context: context,
+                                        builder: (_) => DeviceDialog(
+                                          currentSelection: deviceInfo,
+                                        ),
+                                      );
 
-                                    setState(() => deviceInfo = selectedDevice);
+                                      setState(() => deviceInfo = selectedDevice);
 
-                                    if (deviceInfo == null) {
-                                      setState(() {
-                                        deviceOrientation =
-                                            Orientation.portrait;
-                                      });
-                                      setState(() => showDeviceFrame = true);
-                                    }
-                                  },
-                                ),
-                                if (deviceInfo != null)
+                                      if (deviceInfo == null) {
+                                        setState(() {
+                                          deviceOrientation =
+                                              Orientation.portrait;
+                                        });
+                                        setState(() => showDeviceFrame = true);
+                                      }
+                                    },
+                                  ),
+                                if (!_clean && deviceInfo != null)
                                   DashbookIcon(
                                     key: kRotateIcon,
                                     tooltip: 'Orientation',
@@ -438,7 +509,7 @@ class _DashbookState extends State<Dashbook> {
                                           : Orientation.portrait;
                                     }),
                                   ),
-                                if (deviceInfo != null)
+                                if (!_clean && deviceInfo != null)
                                   DashbookIcon(
                                     key: kHideFrameIcon,
                                     tooltip: 'Device frame',
@@ -450,7 +521,7 @@ class _DashbookState extends State<Dashbook> {
                               ],
                             ),
                           ),
-                          if (_currentView != CurrentView.stories)
+                          if (!_clean && _currentView != CurrentView.stories)
                             Positioned(
                               top: 5,
                               left: 10,
