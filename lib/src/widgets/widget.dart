@@ -352,7 +352,7 @@ class _DashbookState extends State<Dashbook> {
                             bottom: 0,
                             child: _DashbookRightIconList(
                               children: [
-                                if (_hasProperties())
+                                if (!_clean && _hasProperties())
                                   DashbookIcon(
                                     key: kPropertiesIcon,
                                     tooltip: 'Properties panel',
@@ -364,7 +364,7 @@ class _DashbookState extends State<Dashbook> {
                                       },
                                     ),
                                   ),
-                                if (_hasActions())
+                                if (!_clean && _hasActions())
                                   DashbookIcon(
                                     key: kActionsIcon,
                                     tooltip: 'Actions panel',
@@ -376,7 +376,7 @@ class _DashbookState extends State<Dashbook> {
                                       },
                                     ),
                                   ),
-                                if (widget.onCapture != null)
+                                if (!_clean && widget.onCapture != null)
                                   DashbookIcon(
                                     key: kCaptureIcon,
                                     tooltip: 'Capture',
