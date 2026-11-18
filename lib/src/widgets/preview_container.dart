@@ -12,6 +12,7 @@ class PreviewContainer extends StatelessWidget {
   final Orientation? deviceOrientation;
   final bool showDeviceFrame;
   final String? info;
+  final GlobalKey? captureKey;
 
   const PreviewContainer({
     required Key key,
@@ -22,6 +23,7 @@ class PreviewContainer extends StatelessWidget {
     this.deviceInfo,
     this.deviceOrientation,
     this.info,
+    this.captureKey,
   }) : super(key: key);
 
   @override
@@ -58,26 +60,31 @@ class PreviewContainer extends StatelessWidget {
       right: (context.isNotPhoneSize && isPropertiesOpen)
           ? sideBarSizeProperties(context)
           : 0,
-      child: info == null
-          ? preview
-          : Stack(
-              children: [
-                Positioned.fill(child: preview),
-                Positioned(
-                  bottom: 6,
-                  left: 6,
-                  right: 6,
-                  child: Center(
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Text(info!),
+      // The boundary sits inside the Positioned so the Stack still lays the
+      // preview out, and only the preview ends up in a capture.
+      child: RepaintBoundary(
+        key: captureKey,
+        child: info == null
+            ? preview
+            : Stack(
+                children: [
+                  Positioned.fill(child: preview),
+                  Positioned(
+                    bottom: 6,
+                    left: 6,
+                    right: 6,
+                    child: Center(
+                      child: Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Text(info!),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+      ),
     );
   }
 }

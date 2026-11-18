@@ -331,22 +331,20 @@ class _DashbookState extends State<Dashbook> {
                           if (_currentChapter != null &&
                               (context.isNotPhoneSize ||
                                   _currentView != CurrentView.stories))
-                            RepaintBoundary(
-                              key: _previewKey,
-                              child: PreviewContainer(
-                                key: Key(_currentChapter!.id),
-                                usePreviewSafeArea: widget.usePreviewSafeArea,
-                                isPropertiesOpen:
-                                    _currentView == CurrentView.properties ||
-                                        _currentView == CurrentView.actions,
-                                deviceInfo: deviceInfo,
-                                deviceOrientation: deviceOrientation,
-                                showDeviceFrame: showDeviceFrame,
-                                info: _currentChapter?.pinInfo == true
-                                    ? _currentChapter?.info
-                                    : null,
-                                child: chapterWidget!,
-                              ),
+                            PreviewContainer(
+                              key: Key(_currentChapter!.id),
+                              captureKey: _previewKey,
+                              usePreviewSafeArea: widget.usePreviewSafeArea,
+                              isPropertiesOpen:
+                                  _currentView == CurrentView.properties ||
+                                      _currentView == CurrentView.actions,
+                              deviceInfo: deviceInfo,
+                              deviceOrientation: deviceOrientation,
+                              showDeviceFrame: showDeviceFrame,
+                              info: _currentChapter?.pinInfo == true
+                                  ? _currentChapter?.info
+                                  : null,
+                              child: chapterWidget!,
                             ),
                           Positioned(
                             right: 10,
@@ -403,7 +401,8 @@ class _DashbookState extends State<Dashbook> {
                                       );
                                     },
                                   ),
-                                if (!_clean && _currentChapter?.codeLink != null)
+                                if (!_clean &&
+                                    _currentChapter?.codeLink != null)
                                   DashbookIcon(
                                     tooltip: 'See code',
                                     icon: Icons.code,
@@ -451,7 +450,9 @@ class _DashbookState extends State<Dashbook> {
                                       );
                                     },
                                   ),
-                                if (!_clean && kIsWeb && _currentChapter != null)
+                                if (!_clean &&
+                                    kIsWeb &&
+                                    _currentChapter != null)
                                   DashbookIcon(
                                     tooltip: 'Share this example',
                                     icon: Icons.share,
@@ -486,7 +487,8 @@ class _DashbookState extends State<Dashbook> {
                                         ),
                                       );
 
-                                      setState(() => deviceInfo = selectedDevice);
+                                      setState(
+                                          () => deviceInfo = selectedDevice);
 
                                       if (deviceInfo == null) {
                                         setState(() {
