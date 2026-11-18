@@ -270,4 +270,44 @@ void main() {
       );
     });
   });
+
+  group('Idle', () {
+    Dashbook buildDashbook() {
+      return Dashbook(onCapture: (_) async {})
+        ..storiesOf('Text').add('default', (context) {
+          context
+            ..textProperty('label', 'Hello')
+            ..action('Noop', (_) {});
+          return const Text('Idle story');
+        });
+    }
+
+    final tools = [kPropertiesIcon, kActionsIcon, kCaptureIcon];
+
+    testWidgets('hides every tool after the idle delay', (tester) async {
+      await tester.pumpDashbook(buildDashbook());
+      for (final key in tools) {
+        expect(find.byKey(key), findsOneWidget);
+      }
+
+      await tester.pump(const Duration(seconds: 4));
+
+      for (final key in tools) {
+        expect(find.byKey(key), findsNothing);
+      }
+      expect(find.dashbookIconByTooltip('Device preview'), findsNothing);
+    });
+
+    testWidgets('shows the tools again on a tap', (tester) async {
+      await tester.pumpDashbook(buildDashbook());
+      await tester.pump(const Duration(seconds: 4));
+
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pump();
+
+      for (final key in tools) {
+        expect(find.byKey(key), findsOneWidget);
+      }
+    });
+  });
 }
